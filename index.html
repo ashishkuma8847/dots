@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Vibrant Dots with "A"</title>
+  <style>
+    canvas {
+      display: block;
+      margin: 50px auto;
+      background-color: #101820; /* Elegant dark canvas */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="circleCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("circleCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Canvas dimensions
+    canvas.width = 600;
+    canvas.height = 600;
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const circleRadius = 200;
+    const dots = [];
+    const totalDots = 4000; // Maximum density
+    const aShapeDots = 100; // More precision in the "A"
+    const aColor = "rgba(255, 69, 0, 1)"; // Bright glowing orange
+    let isFormingA = false;
+
+    // Generate random dots inside the circle
+    for (let i = 0; i < totalDots; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * circleRadius;
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      const color = `hsl(${Math.random() * 360}, 80%, 60%)`; // Vibrant gradient
+      dots.push({
+        x,
+        y,
+        startX: x,
+        startY: y,
+        color,
+        originalColor: color,
+        idleOffset: Math.random() * 2,
+      });
+    }
+
+    // Define "A" shape
+    const aShape = [
+      { x: centerX - 60, y: centerY - 120 },
+      { x: centerX + 60, y: centerY - 120 },
+      { x: centerX, y: centerY + 60 },
+      { x: centerX - 30, y: centerY - 30 },
+      { x: centerX + 30, y: centerY - 30 },
+    ];
+
+    // Assign the "A" shape positions to specific dots
+    for (let i = 0; i < aShapeDots; i++) {
+      const point = aShape[i % aShape.length];
+      dots[i].startX = point.x + Math.random() * 8 - 4; // Slight randomness
+      dots[i].startY = point.y + Math.random() * 8 - 4; // Slight randomness
+      dots[i].color = aColor; // Assign glowing orange to "A" dots
+    }
+
+    // Draw all dots
+    function drawDots() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      dots.forEach((dot) => {
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = dot.color;
+        ctx.fill();
+      });
+    }
+
+    // Animate dots smoothly to their target positions
+    function animateDots(callback = null) {
+      let animationInProgress = false;
+
+      dots.forEach((dot) => {
+        const dx = dot.startX - dot.x;
+        const dy = dot.startY - dot.y;
+        dot.x += dx * 0.1;
+        dot.y += dy * 0.1;
+
+        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+          animationInProgress = true;
+        }
+      });
+
+      drawDots();
+
+      if (animationInProgress) {
+        requestAnimationFrame(() => animateDots(callback));
+      } else if (callback) {
+        callback();
+      }
+    }
+
+    // Scatter dots on mouse click
+    canvas.addEventListener("click", (e) => {
+      const { clientX: mouseX, clientY: mouseY } = e;
+
+      // Map mouse position to canvas coordinates
+      const rect = canvas.getBoundingClientRect();
+      const canvasX = mouseX - rect.left;
+      const canvasY = mouseY - rect.top;
+
+      dots.forEach((dot) => {
+        const dx = dot.x - canvasX;
+        const dy = dot.y - canvasY;
+        const angle = Math.atan2(dy, dx);
+        const distance = 150 + Math.random() * 150;
+
+        dot.startX = canvasX + Math.cos(angle) * distance;
+        dot.startY = canvasY + Math.sin(angle) * distance;
+        dot.color = `hsl(${Math.random() * 360}, 80%, 70%)`; // Vibrant scatter colors
+      });
+
+      animateDots(() => resetToOriginalState());
+    });
+
+    // Form "A" shape
+    function formAShape() {
+      isFormingA = true;
+
+      dots.forEach((dot, i) => {
+        if (i < aShapeDots) {
+          const point = aShape[i % aShape.length];
+          dot.startX = point.x + Math.random() * 10 - 5;
+          dot.startY = point.y + Math.random() * 10 - 5;
+          dot.color = aColor; // Glowing orange for "A"
+        } else {
+          const randomAngle = Math.random() * Math.PI * 2;
+          const randomRadius = Math.random() * circleRadius;
+          dot.startX = centerX + randomRadius * Math.cos(randomAngle);
+          dot.startY = centerY + randomRadius * Math.sin(randomAngle);
+          dot.color = dot.originalColor; // Reset to original gradient color
+        }
+      });
+
+      animateDots(() => {
+        isFormingA = false;
+      });
+    }
+
+    // Hover effect: Brighten nearby dots
+    canvas.addEventListener("mousemove", (e) => {
+      const { clientX: mouseX, clientY: mouseY } = e;
+      const rect = canvas.getBoundingClientRect();
+      const canvasX = mouseX - rect.left;
+      const canvasY = mouseY - rect.top;
+
+      dots.forEach((dot) => {
+        const dx = dot.x - canvasX;
+        const dy = dot.y - canvasY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 50) {
+          dot.color = "rgba(255, 255, 255, 0.9)"; // Bright white
+        } else {
+          dot.color = dot.originalColor;
+        }
+      });
+
+      drawDots();
+    });
+
+    // Double-click to form "A"
+    canvas.addEventListener("dblclick", formAShape);
+
+    // Reset dots to original state
+    function resetToOriginalState() {
+      dots.forEach((dot) => {
+        dot.startX = dot.x;
+        dot.startY = dot.y;
+      });
+
+      animateDots();
+    }
+
+    // Initial draw
+    drawDots();
+  </script>
+</body>
+</html>
